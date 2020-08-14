@@ -1,0 +1,116 @@
+STACK			SEGMENT	PARA STACK
+STACK_AREA      DW      100h DUP(?)
+STACK_TOP		EQU		$-STACK_AREA
+STACK			ENDS
+
+DATA			SEGMENT	PARA
+RESULT			DW		?
+STR1	        DB 		'liangxuanxuan','$'
+LEN				EQU		121
+IN_BUF			DB		LEN-1
+				DB		?
+				DB		LEN DUP(?)
+				
+ABOVE			DB		' > ','$'
+BELOW			DB		' < ','$'
+EQUAL			DB		' = ','$'
+
+SPACE			DB		20H,'$'
+NEW_LINE		DB		0DH,0AH,'$'	
+	
+DATA			ENDS
+
+CODE			SEGMENT
+				ASSUME	CS:CODE,DS:DATA,SS:STACK
+
+;主函数	
+MAIN			PROC	FAR
+			
+				MOV     AX,STACK
+				MOV		SS,AX
+				MOV		SP,STACK_TOP
+				MOV		AX,DATA
+                MOV     DS,AX               ;SET SS,SP,DS
+				MOV		ES,AX
+				
+				CALL	INPUT_STR
+				MOV		SI,OFFSET STR1
+				MOV		DI,OFFSET IN_BUF+2
+				CALL	STRCMP
+				
+				MOV 	DX,OFFSET STR1
+				CALL	DIS_STR
+				
+				MOV		AX,RESULT
+				CMP		AX,1
+				JA		MAIN_A
+				JZ		MAIN_Z
+				MOV 	DX,OFFSET BELOW
+				JMP		PRINT
+MAIN_A:			MOV 	DX,OFFSET ABOVE
+				JMP		PRINT
+MAIN_Z:			MOV 	DX,OFFSET EQUAL
+PRINT:			CALL	DIS_STR
+				
+				MOV 	DX,OFFSET IN_BUF+2
+				CALL	DIS_STR
+				
+				MOV		AX,4C00H
+				INT		21H
+MAIN			ENDP
+
+;读取字符串到IN_BUF（从IN_BUF+2开始，以'$'结尾）
+INPUT_STR		PROC
+				MOV		AH,0AH
+				MOV		DX,OFFSET IN_BUF
+				INT		21H
+				MOV		CL,IN_BUF+1
+				XOR		CH,CH
+				MOV		SI,OFFSET IN_BUF+2
+				ADD		SI,CX
+				MOV		BYTE PTR [SI],'$'
+				RET
+INPUT_STR		ENDP
+
+;比较字符串，DS:SI=String1，ES:DI=String2，RESULT存返回值
+STRCMP			PROC
+				PUSH	CX
+				PUSH	BX
+				PUSh	AX
+
+LP3:			CMP		BYTE PTR [SI],'$'
+				JZ		LP3_1
+				CMP		BYTE PTR [DI],'$'
+				JZ		A
+				JMP		LP3_2
+LP3_1:			CMP		BYTE PTR [DI],'$'
+				JZ		Z
+				JMP		B
+LP3_2:			MOV		AL,BYTE PTR [SI]
+				CMP		AL,BYTE PTR [DI]
+				JA		A
+				JB		B
+				INC		SI
+				INC		DI
+				JMP		LP3
+				
+B:				MOV		RESULT,0		;小于
+				JMP		SHORT RETURN
+A:				MOV		RESULT,2		;大于
+				JMP		SHORT RETURN
+Z:				MOV		RESULT,1		;等于
+RETURN:			POP		AX
+				POP		BX
+				POP		CX
+				RET
+STRCMP			ENDP
+
+DIS_STR			PROC
+				MOV 	AH,09H			
+				INT 	21H
+				RET
+DIS_STR			ENDP
+				
+CODE			ENDS		 
+
+				END     MAIN

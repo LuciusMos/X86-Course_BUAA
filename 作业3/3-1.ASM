@@ -1,0 +1,75 @@
+STACK			SEGMENT	PARA STACK
+STACK_AREA      DW      100h DUP(?)
+STACK_TOP		EQU		$-STACK_AREA
+STACK			ENDS
+
+DATA			SEGMENT	PARA
+STR1	        DB 		'zhaoliangxuan','$'
+STR2			DB		30 DUP(?)
+SPACE			DB		20H,'$'
+NEW_LINE		DB		0DH,0AH,'$'
+DATA			ENDS
+
+CODE			SEGMENT
+				ASSUME	CS:CODE,DS:DATA,SS:STACK
+
+MAIN			PROC	FAR
+				MOV     AX,STACK
+				MOV 	SS,AX
+				MOV		SP,STACK_TOP
+				MOV		AX,DATA
+                MOV     DS,AX
+				MOV		ES,AX               ;SET SS,SP,DS,ES
+				
+				MOV		BX,OFFSET STR2
+				CALL	DISP_STR
+				MOV		BX,OFFSET STR1-7
+				CALL	DISP_STR
+				MOV		BX,OFFSET STR1+8
+				CALL	DISP_STR
+				
+				MOV		AX,4C00H
+				INT		21H
+MAIN			ENDP
+
+DISP_STR		PROC			;BX = STR2首地址，用于初始化DI
+				MOV 	DX,OFFSET STR1
+				MOV 	AH,09H			
+				INT 	21H
+				MOV 	DX,OFFSET SPACE
+				MOV 	AH,09H			
+				INT 	21H
+				
+				MOV		SI,OFFSET STR1
+				MOV		DI,BX
+				CALL	MEM_MOVE
+				
+				MOV 	DX,OFFSET STR1
+				MOV 	AH,09H			
+				INT 	21H
+				MOV 	DX,OFFSET SPACE
+				MOV 	AH,09H			
+				INT 	21H
+				
+				MOV 	DX,BX
+				MOV 	AH,09H			
+				INT 	21H
+				MOV 	DX,OFFSET NEW_LINE
+				MOV 	AH,09H		
+				INT 	21H
+				RET
+DISP_STR		ENDP			
+							
+;复制字符串			
+MEM_MOVE		PROC			;入口参数: DS:SI指向String1, ES:DI指向String2
+				CLD
+MM_LP:			LODSB
+				STOSB
+				CMP		AL,'$'
+				JNZ		MM_LP
+				RET
+MEM_MOVE		ENDP	
+				
+CODE			ENDS
+	 
+				END     MAIN
